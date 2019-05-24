@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+  # Proxy server to join all parts to the same PORT
+  proxy:
+    build: images/nginx
+    ports:
+      - '80:80'
+    links:
+      - php56
+      - php71
+      - slate
+
+  # geopma webserver for older version (not used)
+  php56:
+    build: images/php56
+    volumes:
+      - ./geopma_old:/var/www/html/geopma
+    ports:
+      - '81:80'
+
+  # geopma webserver
+  php71:
+    build: images/php71
+    volumes:
+      - ./geopma/web:/var/www/html/geopma
+      - ./geopma:/var/www/yii2_source_projects/geopma
+    links:
+      - database_geopma
+    ports:
+      - '82:80'
+    #environment:
+      #- DATABASE_HOST=database_geopma
+      #- DATABASE_USER=root
+      #- DATABASE_PASSWORD=1234
+
+  # geopma database
+  database_geopma:
+    image: mysql:5.5
+    #command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=1234
+      - MYSQL_DATABASE=geopma
+
+  # react front-end
+  frontend:
+    image: node:latest
+    volumes:
+      - ./frontend:/app
+    working_dir: /app
+    ports:
+      - '3000:3000'
+    command: yarn start
+
+  # Api Endpoint documentation
+  slate:
+    build: ./slate
+    ports:
+      - '4567:4567'
+    volumes:
+      - ./slate/source:/usr/src/app/source
